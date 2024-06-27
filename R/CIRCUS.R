@@ -10,6 +10,7 @@
 #' @import tidyr
 #' @importFrom methods as
 #' @importFrom utils read.csv read.table
+#' @importFrom S4Vectors subjectHits DataFrame
 
 #' @name CIRCUS
 #' @description Converts BED12 or BED16 coordinates of circular RNAs into Universal Identifiers (UID)
