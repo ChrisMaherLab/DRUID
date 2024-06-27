@@ -15,7 +15,7 @@ NOTE: For BED6 input coordinates, DRUID can only label the terminal exon blocks 
 
 ## Quick Start
 
-Install CIRCUS in R with `devtools::install_github('ChrisMaherLab/DRUID')`
+Install DRUID in R with `devtools::install_github('ChrisMaherLab/DRUID')`
 
 Note: The following pre-requisites need to be installed:
 
