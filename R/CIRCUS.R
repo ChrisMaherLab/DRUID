@@ -57,7 +57,7 @@ CIRCUS <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
   if (bed6 == F){
 
     #######Case 1: BED12 circRNA coordinates as input No. 3#############
-    message('BED12 circRNA coordinates as input')
+    message('BED12 circRNA coordinates as input\r\n')
     ##Load BED12 file and keep relevant columns for annotation##
     bed12 <- read.table(bed_path, header = F, sep = "\t")
     names(bed12) <- c('chrom', 'start', 'end','name', 'score', 'strand', 'thickStart', 'thickEnd', 'itemRgb', 'blockCount', 'blockSizes', 'blockStarts')
