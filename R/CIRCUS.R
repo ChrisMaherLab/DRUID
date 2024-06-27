@@ -57,7 +57,7 @@ CIRCUS <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
   if (bed6 == F){
 
     #######Case 1: BED12 circRNA coordinates as input No. 3#############
-    print('BED12 circRNA coordinates as input')
+    message('BED12 circRNA coordinates as input')
     ##Load BED12 file and keep relevant columns for annotation##
     bed12 <- read.table(bed_path, header = F, sep = "\t")
     names(bed12) <- c('chrom', 'start', 'end','name', 'score', 'strand', 'thickStart', 'thickEnd', 'itemRgb', 'blockCount', 'blockSizes', 'blockStarts')
@@ -88,7 +88,7 @@ CIRCUS <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
     bed_df <- merge(m_df,values_df,by.x='feature.name',by.y='name',all.x=TRUE)
 
     ###For + strand###
-    print('Processing + strand')
+    message('Processing + strand')
     bed_df_positive <- bed_df %>%
       filter(strand == "+")%>%
       arrange(n_row,score)
@@ -197,7 +197,7 @@ CIRCUS <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
                  TRUE ~ gsub('I_','',paste0('ci',gene,'(',new_exon_name,')'))))
 
     ###For - strand###
-    print('Processing - strand')
+    message('Processing - strand')
     bed_df_negative <- bed_df %>%
       filter(strand == "-")%>%
       arrange(n_row,score)
@@ -310,14 +310,14 @@ CIRCUS <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
 
 
     ###Combine + & - strand###
-    print('Combining strands and generating UIDs')
+    message('Combining strands and generating UIDs')
     df <- rbind(df_positive1,df_negative1)
     df <- df %>%
       arrange(n_row)
     annotated_bed<- merge(bed,df, by = 'n_row', all.x = TRUE)
 
     #Add alphabets to isoforms sharing the same UID
-    print('Indexing ambiguous isoforms')
+    message('Indexing ambiguous isoforms')
     annotated_bed$make_unique <- make.unique(annotated_bed$circRNA_name,sep = ";")
     annotated_bed$make_unique[is.na(annotated_bed$circRNA_name)] <- NA
     annotated_bed$make_unique[annotated_bed$circRNA_name==annotated_bed$make_unique] <- NA
@@ -338,12 +338,12 @@ CIRCUS <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
     annotated_bed <- merge(annotated_bed,bed12[,c("name","n_row")],by="n_row",all.x=T)
     annotated_bed <- annotated_bed[c("name","n_row","chrom","start","end","strand","blockCount","blockSizes","blockStarts",'feature.name',"gene","new_exon_name","isoform_index","circRNA_UID")]
     names(annotated_bed) <- c("original_circRNA_name","n_row","chrom","start","end","strand","blockCount","blockSizes","blockStarts",'transcript',"gene","exon_names","isoform_index","circRNA_UID")
-    print('DONE')
+    message('DONE')
     annotated_bed
   } else {
 
     #######Case 2: BED6 circRNA coordinates as input No. 3#############
-    print('BED6 circRNA coordinates as input')
+    message('BED6 circRNA coordinates as input')
     ##Load BED6 file and keep relevant columns for annotation##
     bed6 <- read.table(bed_path, header = F, sep = "\t")
     names(bed6) <- c('chrom', 'start', 'end','name', 'score', 'strand')
@@ -376,7 +376,7 @@ CIRCUS <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
     bed_df$abs_end_diff <- abs(bed_df$X.end - bed_df$end)
 
     ###For + strand###
-    print('Processing + strand')
+    message('Processing + strand')
     bed_df_positive <- bed_df %>%
       filter(strand == "+")%>%
       arrange(n_row,score)
@@ -502,7 +502,7 @@ CIRCUS <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
       select(feature.name, gene,seqnames, start, end, width, strand,n_row, dist.to.feature,exon_name)
 
     ###For - strand###
-    print('Processing - strand')
+    message('Processing - strand')
     bed_df_negative <- bed_df %>%
       filter(strand == "-")%>%
       arrange(n_row,desc(score))
@@ -627,7 +627,7 @@ CIRCUS <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
       select(feature.name, gene,seqnames, start, end, width, strand,n_row, dist.to.feature,exon_name)
 
     ###Combine + & - strand###
-    print('Combining strands and generating UIDs')
+    message('Combining strands and generating UIDs')
     df <- rbind(df_positive, df_negative)
     df <- df %>%
       select(n_row, width, feature.name, gene,dist.to.feature, exon_name) %>%
@@ -642,7 +642,7 @@ CIRCUS <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
     annotated_bed<- merge(bed,df, by = 'n_row', all.x = TRUE)
 
     #Add alphabets to isoforms sharing the same UID
-    print('Indexing ambiguous isoforms')
+    message('Indexing ambiguous isoforms')
     annotated_bed$make_unique <- make.unique(annotated_bed$circRNA_name,sep = ";")
     annotated_bed$make_unique[is.na(annotated_bed$circRNA_name)] <- NA
     annotated_bed$make_unique[annotated_bed$circRNA_name==annotated_bed$make_unique] <- NA
@@ -662,7 +662,7 @@ CIRCUS <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
     annotated_bed <- merge(annotated_bed,bed6[,c("name","n_row")],by="n_row",all.x=T)
     annotated_bed <- annotated_bed[c("name","n_row","chrom","start","end","strand",'feature.name',"gene","exon_name","isoform_index","circRNA_UID")]
     names(annotated_bed) <- c("original_circRNA_name","n_row","chrom","start","end","strand",'transcript',"gene","exon_names","isoform_index","circRNA_UID")
-    print('DONE')
+    message('DONE')
     annotated_bed
   }
 }
