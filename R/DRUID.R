@@ -3,7 +3,7 @@
 # library(genomation)
 # library(tidyr)
 
-#' CIRCUS (CIrcular RNA Coordinate Update System)
+#' DRUID (Deriving CircRNA Universal IDentifiers)
 #' @import dplyr
 #' @import GenomicRanges
 #' @import genomation
@@ -12,7 +12,7 @@
 #' @importFrom utils read.csv read.table
 #' @importFrom S4Vectors subjectHits DataFrame
 
-#' @name CIRCUS
+#' @name DRUID
 #' @description Converts BED12 or BED16 coordinates of circular RNAs into Universal Identifiers (UID)
 #' according to nomenclature proposed by Chen et al. (PMID: 36658223).
 #'
@@ -21,7 +21,7 @@
 #' See 'transcript2gene.txt' in test data.
 #' @param ref_path BED 12 file with no headers of reference transcripts for annotation. Must
 #' contain all 12 columns indicating exon composition of each transcript. 4th column should
-#' contain transcript IDs. see 'annotation.bed' in test data.
+#' contain transcript IDs. See 'annotation.bed' in test data.
 #' @param bed_path BED file with circRNAs to convert into circRNA UID. 4th column should
 #' contain an original identifier of choice (e.g., circRNA_1). Indicate whether this file is
 #' BED12 or BED6 with the bed6 parameter.
@@ -34,16 +34,16 @@
 #' "isoform_index" indicates alphabetized indices in the case of duplicated UIDs of circRNA
 #' isoforms that share same exon/intron anatomy but with different splice sites.
 #' @examples
-#' library(CIRCUS)
-#' test_bed12 <- CIRCUS(ref_gpf_path = system.file("extdata",'transcript2gene.txt',
-#' package="CIRCUS"),ref_path = system.file("extdata",'annotation.bed',package="CIRCUS"),
-#' bed_path = system.file("extdata",'bed12_coords.bed',package="CIRCUS"),bed6=FALSE)
-#' test_bed6 <- CIRCUS(ref_gpf_path = system.file("extdata",'transcript2gene.txt',
-#' package="CIRCUS"),ref_path = system.file("extdata",'annotation.bed',package="CIRCUS"),
-#' bed_path = system.file("extdata",'bed6_coords.bed',package="CIRCUS"),bed6=TRUE)
+#' library(DRUID)
+#' test_bed12 <- DRUID(ref_gpf_path = system.file("extdata",'transcript2gene.txt',
+#' package="DRUID"),ref_path = system.file("extdata",'annotation.bed',package="DRUID"),
+#' bed_path = system.file("extdata",'bed12_coords.bed',package="DRUID"),bed6=FALSE)
+#' test_bed6 <- DRUID(ref_gpf_path = system.file("extdata",'transcript2gene.txt',
+#' package="DRUID"),ref_path = system.file("extdata",'annotation.bed',package="DRUID"),
+#' bed_path = system.file("extdata",'bed6_coords.bed',package="DRUID"),bed6=TRUE)
 #' @export
 
-CIRCUS <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
+DRUID <- function(ref_gpf_path,ref_path,bed_path,bed6=FALSE){
 
   #######List of gene to transcript names as input No. 1#############
   ref_gpf <- read.csv(ref_gpf_path, header = FALSE, stringsAsFactors = FALSE, sep = '\t')

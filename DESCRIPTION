@@ -1,6 +1,6 @@
-Package: CIRCUS
+Package: DRUID
 Type: Package
-Title: CIRCUS (CIrcular RNA Coordinate Update System)
+Title: DRUID (Deriving CircRNA Universal Identifiers)
 Version: 0.1.0
 Authors@R: c(person(given="Li", family="Lin", email="lil1@wustl.edu",
           role=c("aut", "cre")),person(given="Sidi", family="Zhao", email="sidizhao@wustl.edu",
