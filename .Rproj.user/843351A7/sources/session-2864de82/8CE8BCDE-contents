@@ -1,0 +1,252 @@
+#Load libraries
+library(tidyverse)
+library(Gviz)
+library(GenomicRanges)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(EnsDb.Hsapiens.v86)
+library(org.Hs.eg.db)
+
+setwd("~/Desktop/WUSTL/Academic/Research/Maher Lab/Data/CircRNA/METTL3_KD/long_read_m6A/")
+
+
+#OBTAIN TRANSCRIPTS DATABASE
+
+#UCSC hg38
+txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene %>% exons(columns=c("GENEID", "EXONID", "TXNAME" ))
+txdb <- S4Vectors::expand(txdb, c("GENEID", "EXONID", "TXNAME"))
+
+
+#Custom maher lab annotations
+bed <- read_tsv(file = "hg38_with_maher_lab_lncrna.gpf", col_names = F)
+bed <- bed %>% dplyr::select(c(X2, X4, X5, X3, X12, X1))
+colnames(bed) <- c("chromosome", "start", "end", "strand", "GENEID", "TXNAME")
+bed$EXONID <- 1:nrow(bed)
+bed <- bed %>% mutate(width = end - start + 1)
+bed <- dplyr::select(bed, c("chromosome", "start", "end", "width", 'strand', 'GENEID', 'EXONID', 'TXNAME'))
+
+#Load methylation results
+
+#Read in m6a results
+m6a <- read.table(file = "final_analysis/m6anet_eligos2_dm_aggregate_final_no_pseudogene.txt", header = T,stringsAsFactors = F,sep = "\t",quote = "")
+
+###CORRECT MISTAKE AND RE-EXPORT###
+m6a$both.kd.shRNA2.vs.ctrl.log2FC_m6anet <- log2(((m6a$gridion.kd.shRNA2.vs.ctrl.log2FC_m6anet+m6a$promethion.kd.shRNA2.normalized_reads_m6anet)/2+1)/(m6a$ctrl_mean_normalized_reads_individual_m6anet+1))
+m6a$all.kd.shRNA1and2.vs.ctrl.log2FC_m6anet <- log2(((m6a$promethion.kd.shRNA1.normalized_reads_m6anet+m6a$gridion.kd.shRNA2.vs.ctrl.log2FC_m6anet+m6a$promethion.kd.shRNA2.normalized_reads_m6anet)/3+1)/(m6a$ctrl_mean_normalized_reads_individual_m6anet+1))
+
+
+m6a$m6a_end <- m6a$m6a_start
+
+m6a$promethion.kd.shRNA1.vs.ctrl.log2FC_mean <- rowMeans(x = m6a[,c("promethion.kd.shRNA1.vs.ctrl.log2FC_m6anet",
+                                                                    "promethion.kd.shRNA1.vs.ctrl.log2FC_eligos2")],na.rm = T)
+m6a$both.kd.shRNA2.vs.ctrl.log2FC_mean <- rowMeans(x = m6a[,c("both.kd.shRNA2.vs.ctrl.log2FC_m6anet",
+                                                              "both.kd.shRNA2.vs.ctrl.log2FC_eligos2")],na.rm = T)
+
+m6a$all.kd.shRNA1and2.vs.ctrl.log2FC_mean <- rowMeans(x = m6a[,c("individual.kd.shRNA1and2.vs.ctrl.log2FC_m6anet",
+                                                                 "all.kd.shRNA1and2.vs.ctrl.log2FC_eligos2")],na.rm = T)
+write.table(m6a, "final_analysis/m6anet_eligos2_dm_aggregate_final_no_pseudogene_corrected.txt", sep='\t', quote=F,row.names = F,col.names =T)
+
+m6a <- subset(m6a,m6a$no_sites_per_gene>=3)
+
+
+#Create dir
+dir_path <- "final_analysis/fold_change_plots_final"
+dir.create(path = dir_path)
+
+
+#Gene plot function
+
+#Function for gene plotting with methylation and circRNA metadata
+
+#Input gene of interest, colors for circRNA, methylation, and transcripts, extension of window on left and right, y axis limits for histogram, prob or read depth, database, and methylation file
+geneplot <- function(GOI, Geneid, colors = c("darkred", "DarkOrchid4", "darkblue") , extend = c(5000, 5000), probability = T, database = txdb, meth= m6a){
+  
+  #Get gene of interest and entrezid
+  GOI <- GOI
+  Geneid <- Geneid
+  
+  #Get transcripts for gene of interest
+  gene <- database[database$GENEID == Geneid,] %>% data.frame()
+  gene
+  colnames(gene) <- c("chromosome", "start", "end", "width", "strand", "gene", "exon", "transcript")
+  gene <- gene %>% dplyr::filter(chromosome %in% c(paste0("chr", c(1:22, "X", "Y","M"))))
+  
+  #Get chromosome number
+  chr <- gene$chromosome %>% unique()
+  start <- start(head(GRanges(gene), 1)) - extend[1]
+  stop <- end(tail(GRanges(gene), 1)) + extend[2]
+  
+  #Create annotation track 
+  grtrack <- GeneRegionTrack( genome = "hg38",range = gene, chromosome = chr , name = GOI, transcriptAnnotation = "transcript", background.panel = "lightyellow", background.title = colors[3], fill = colors[3], 
+                              col = colors[3], rot.title = 90)
+  gtrack <- GenomeAxisTrack()
+  
+  #########################################################################################################################
+  
+  #Get circRNA coordinates if any
+  circ <- m6a %>% dplyr::filter(new.name %in% GOI) %>% dplyr::filter(circRNA_id != "no circRNA") %>% .$circRNA_id %>% unique()
+  
+  if (circ %>% length() == 0){
+    ctrack <- NULL#Set to null if none
+    
+  } else { 
+    #Find unique circRNA coordinates
+    circ <- circ %>% str_split(pattern = "chr") %>% unlist()#Split coordinates
+    circ <- circ[circ !=""]#Remove empty strings
+    circ <- circ %>% str_split("\\|") %>% lapply(FUN = function(i){return(i[1:4])}) %>% unlist()  %>% matrix(ncol = 4, byrow = T) %>% data.frame()#Split multiple regions - format to df
+    colnames(circ) <- c("chr", "start", "stop", "strand")
+    #Convert to GRanges
+    circ <- circ %>% dplyr::select(c("chr", "start", "stop", "strand")) %>% GRanges()
+    #Create annotation track 
+    ctrack <- AnnotationTrack(circ, name = "circRNA", background.title = colors[1],  background.panel ="lightgrey", fill = colors[1], col = colors[1], rot.title = 0)
+  }
+  
+  
+  
+  #########################################################################################################################
+  
+  #Get RNA methylation difference 
+  
+  #Calculate percentage if prob = T
+
+  
+  if (probability == T){rnam <- meth %>% dplyr::filter(new.name %in% GOI)  %>% mutate(Diff = all.kd.shRNA1and2.vs.ctrl.log2FC_mean) %>% dplyr::select(c(chr, m6a_start, m6a_end, Diff))
+  } else {
+    #Else return diff in reads
+    rnam <- meth %>% dplyr::filter(new.name %in% GOI)  %>% mutate(Diff = both.kd.shRNA2.vs.ctrl.log2FC_mean) %>% dplyr::select(c(chr, m6a_start, m6a_end, Diff))
+    
+  }
+  colnames(rnam) <- c("chr", "start", "stop", "Diff")
+  rnam$Diff[is.na(rnam$Diff)] <- 0
+  rnam <- rnam %>% GRanges()
+  
+  
+  #Create baseline track 
+  #baseline <- data.frame(chr, start = start, end = stop) %>% GRanges() %>% slidingWindows(width = 1) %>% data.frame() %>% mutate(Diff = 0) %>% GRanges()
+  #baseTrack <- DataTrack(c(baseline), #type = "smooth",
+  #                       #col = colors[2], background.title = colors[2], 
+  #                       span = 1000)  
+  
+  #Create annotation track 
+  dname <- ifelse(probability == T, "all.kd.shRNA1and2.vs.ctrl.log2FC_mean", "both.kd.shRNA2.vs.ctrl.log2FC_mean")
+  dTrack <- DataTrack(c(rnam), name = dname, background.title = colors[2], fill = colors[2],type = "hist",baseline=0,col.baseline="black")
+  #ot <- OverlayTrack(trackList = list(dTrack, baseTrack))
+
+  ###########################################################################################################
+  
+  #Plot all tracks
+  plot_file <- ifelse(probability == T, paste0(dir_path, "/", GOI, ".shRNA-both.annotated.geneplot.pdf") , paste0(dir_path, "/", GOI, ".shRNA-2.annotated.geneplot.pdf"))
+    
+  cat("Plotting gene: ", GOI, "\n")
+  #Determine y-axis limits
+  lim_min <- ifelse(min(dTrack@data)>0, 
+                    0, 
+                    floor(min(dTrack@data)))
+  lim_max <- ifelse(max(dTrack@data)<0, 
+                    0, 
+                    ceiling(max(dTrack@data)))
+  lim <- c(lim_min,lim_max)
+  
+  
+  if (is.null(ctrack)){
+    
+    #Without circRNA  
+    
+    pdf(plot_file, width = 20, height = 20)
+    plotTracks(list(gtrack, dTrack, grtrack), type = c("histogram"), cex.title = 1.5,cex.axis=0.8, ylim = lim, sizes = c(0.5,0.5,0.5) , col.histogram = colors[2], fill.histogram = colors[2], title.width = 3, from = start, to = stop) 
+    #plotTracks(list(gtrack, ot, grtrack), type = c("histogram"), cex.title = 1.5, ylim = lim, sizes = c(0.5,0.5,0.5) , col.histogram = colors[2], fill.histogram = colors[2], title.width = 3, from = start, to = stop) 
+    #plotTracks(baseTrack,type = c("histogram"),col.histogram = colors[2], fill.histogram = colors[2], title.width = 3, from = start, to = stop)
+    #plotTracks(dTrack,type = c("histogram"),col.histogram = colors[2], fill.histogram = colors[2], title.width = 3, from = start, to = stop)
+    dev.off()
+  } else {
+    
+    
+    #With circRNA
+    pdf(plot_file, width = 20, height = 20)
+    plotTracks(list(gtrack, dTrack, ctrack, grtrack), cex.title = 1.5, cex.axis=0.8,ylim = lim, sizes = c(0.5,0.5,0.1,0.5) , col.histogram = colors[2], fill.histogram = colors[2], title.width = 3, from = start, to = stop) 
+    #plotTracks(list(gtrack, ot, ctrack, grtrack), cex.title = 1.5, ylim = lim, sizes = c(0.5,0.5,0.1,0.5) , col.histogram = colors[2], fill.histogram = colors[2], title.width = 3, from = start, to = stop) 
+    dev.off()
+  }
+  }
+
+
+
+
+
+
+#Converting gene name
+
+
+#Get gene names with methylation changes
+genes <- m6a$new.name %>% unique()
+
+
+
+#Convert to geneids
+query <- lapply(genes, FUN  = function(g){
+  cat(g)
+  #Get EntrezID in Org.Hs.Db, first check if gene symbol or ensembl symbol 
+  if (grepl(pattern = "ENSG", x  = g)){
+    Geneid <- try(mapIds(org.Hs.eg.db, keys = g, keytype = "ENSEMBL", column="ENTREZID"))
+  } else {
+    Geneid <- try(mapIds(org.Hs.eg.db, keys = g, keytype = "SYMBOL", column="ENTREZID"))
+    return(Geneid)
+  }})
+
+query <- query %>% unlist() 
+reference <- txdb %>% data.frame() %>% .$GENEID#Get list of transcripts in TxDb.Hsapiens.UCSC.hg38.knownGene
+
+#Find genes without geneid - unannotated
+unannotated <- genes[(grepl(pattern = "Error", x = query))]
+
+#Find annotated genes in UCSC
+annotated <- query[!(grepl(pattern = "Error", x = query))]
+unannotated <- c(annotated[!(annotated %in% reference)], unannotated)
+annotated <- annotated[(annotated %in% reference)]
+#annotated <- annotated[!grepl(pattern = "RPSAP", x = names(annotated))]
+
+
+
+#Plot annotated genes
+#geneplot(GOI = "PSMF1", Geneid = 9491, probability = F, database = txdb, meth = psmf)
+for (i in 1:length(annotated)){ geneplot(GOI = names(annotated)[i], Geneid = annotated[i], probability = T)}
+for (i in 1:length(annotated)){ geneplot(GOI = names(annotated)[i], Geneid = annotated[i], probability = F)}
+
+
+#Plot unannotated genes
+unannotated_df <- data.frame(unannotated,ENSG=names(unannotated))
+unannotated_df$ENSG[unannotated_df$ENSG==""] <- unannotated_df$unannotated[unannotated_df$ENSG==""]
+
+bed <- bed %>% dplyr::filter(chromosome %in% c(paste0("chr", c(1:22, "X", "Y","M"))))
+
+
+genes <- unannotated_df[unannotated_df$ENSG %in% bed$GENEID |
+                          unannotated_df$ENSG %in% bed$TXNAME,]
+
+bed_subset <- subset(bed,(bed$GENEID%in%genes$ENSG | 
+                          bed$TXNAME%in%genes$ENSG))# &
+                       #!grepl(pattern = "_2",bed$TXNAME))
+
+genes_merge <- merge(genes,bed_subset,
+                     by.x="ENSG",
+                     by.y="GENEID",
+                     all.x=T)
+genes_merge <- merge(genes_merge,bed_subset,
+                     by.x="ENSG",
+                     by.y="TXNAME",
+                     all.x=T)
+
+genes_clean <- unique(genes_merge[,c("ENSG","GENEID","TXNAME")])
+genes_clean$Symbol[is.na(genes_clean$GENEID)] <- genes_clean$ENSG[is.na(genes_clean$GENEID)]
+genes_clean$Symbol[is.na(genes_clean$TXNAME)] <- genes_clean$GENEID[is.na(genes_clean$TXNAME)]
+genes_clean$Symbol[is.na(genes_clean$Symbol)] <- genes_clean$TXNAME[is.na(genes_clean$Symbol)]
+
+genes_clean <- unique(genes_clean[c("ENSG","Symbol")])
+
+#geneplot(GOI = "rna-RNR1", Geneid = "RNR1", probability = F, database = bed)
+for (i in 1:nrow(genes_clean)){
+  geneplot(GOI = genes_clean$ENSG[i], Geneid = genes_clean$Symbol[i], probability = T, database = bed_subset)
+  }
+for (i in 1:nrow(genes_clean)){
+  geneplot(GOI = genes_clean$ENSG[i], Geneid = genes_clean$Symbol[i], probability = F, database = bed_subset)
+}
+

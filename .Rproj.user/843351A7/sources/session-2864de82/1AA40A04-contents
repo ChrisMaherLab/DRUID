@@ -1,0 +1,21 @@
+# Hello, world!
+#
+# This is an example function named 'hello'
+# which prints 'Hello, world!'.
+#
+# You can learn more about package authoring with RStudio at:
+#
+#   http://r-pkgs.had.co.nz/
+#
+# Some useful keyboard shortcuts for package authoring:
+#
+#   Install Package:           'Cmd + Shift + B'
+#   Check Package:             'Cmd + Shift + E'
+#   Test Package:              'Cmd + Shift + T'
+
+hello <- function() {
+  print("Hello, world!")
+}
+
+test_bed12 <- CIRCUS(ref_gpf_path = 'transcript2gene.txt',ref_path = 'annotation.bed',bed_path = 'bed12_coords.bed',bed6=FALSE)
+test_bed6 <- CIRCUS(ref_gpf_path = 'transcript2gene.txt',ref_path = 'annotation.bed',bed_path = 'bed6_coords.bed',bed6=TRUE)

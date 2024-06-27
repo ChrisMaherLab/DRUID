@@ -1,0 +1,21 @@
+Package: CIRCUS
+Type: Package
+Title: CIRCUS (CIrcular RNA Coordinate Update System)
+Version: 0.1.0
+Authors@R: c(person(given="Li", family="Lin", email="lil1@wustl.edu",
+          role=c("aut", "cre")),person(given="Sidi", family="Zhao", email="sidizhao@wustl.edu",
+          role=c("aut")),person(given="Christopher", family="Maher", email="christophermaher@wustl.edu",
+          role=c("aut")))
+Maintainer: Li Lin <lil1@wustl.edu>
+Description: Converts BED12 or BED16 coordinates of circular RNAs 
+    into Universal Identifiers (UID) according to nomenclature 
+    proposed by Chen et al. (PMID: 36658223).
+Depends: R (>= 4.2.2)
+Imports: GenomicRanges (>= 1.50.2), genomation (>= 1.30.0), tidyr (>= 1.3.0), dplyr (>= 1.1.4), methods, utils
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.1
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
