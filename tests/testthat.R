@@ -11,6 +11,6 @@ library(dplyr)
 library(GenomicRanges)
 library(genomation)
 library(tidyr)
-library(CIRCUS)
+library(DRUID)
 
-test_check("CIRCUS")
+test_check("DRUID")
