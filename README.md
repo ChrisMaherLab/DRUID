@@ -27,7 +27,7 @@ Note: The following pre-requisites need to be installed:
 - `utils`
 - `S4Vectors`
 
-To load CIRCUS: `library(DRUID)`
+To load DRUID: `library(DRUID)`
 
 To open help manual: `?DRUID`
 
